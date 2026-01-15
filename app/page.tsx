@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-black text-white p-4">
@@ -11,13 +13,23 @@ export default function Home() {
         <p className="text-xl md:text-2xl text-gray-400 font-light">
           AI Business Dashboard Solution
         </p>
-
+        
         {/* 뱃지 */}
         <div className="inline-block mt-8 px-6 py-2 border border-gray-800 rounded-full bg-gray-900">
           <span className="flex items-center gap-2">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            <span className="text-sm text-gray-300 font-mono">2026 Fast Builderthon • Coming Soon</span>
+            <span className="text-sm text-gray-300 font-mono">2026 Fast Builderthon</span>
           </span>
+        </div>
+
+        {/* 대시보드 링크 */}
+        <div className="mt-8">
+          <Link
+            href="/dashboard"
+            className="inline-block px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
+          >
+            대시보드 시작하기 →
+          </Link>
         </div>
       </div>
     </main>

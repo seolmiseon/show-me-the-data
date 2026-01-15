@@ -1,0 +1,52 @@
+.
+├── DEPLOYMENT.md
+├── HANDOVER.md
+├── README.md
+├── STRUCTURE.md
+├── api
+│   ├── README.md
+│   ├── __init__.py
+│   ├── agents
+│   │   ├── __init__.py
+│   │   └── event_agent.py
+│   ├── index.py
+│   ├── models
+│   │   ├── __init__.py
+│   │   └── schemas.py
+│   ├── routers
+│   │   ├── __init__.py
+│   │   └── events.py
+│   ├── services
+│   │   ├── __init__.py
+│   │   ├── email_analyzer.py
+│   │   └── openai_service.py
+│   ├── tools
+│   │   ├── __init__.py
+│   │   └── event_extraction_tool.py
+│   └── utils
+│       ├── __init__.py
+│       └── date_parser.py
+├── app
+│   ├── dashboard
+│   │   └── page.tsx
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts
+├── postcss.config.mjs
+├── public
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── requirements.txt
+├── tree.txt
+├── tsconfig.json
+├── update_tree.sh
+└── vercel.json
+
+10 directories, 39 files
