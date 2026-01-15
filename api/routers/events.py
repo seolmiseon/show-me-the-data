@@ -15,16 +15,17 @@ from models.schemas import (
     EventType
 )
 from services.email_analyzer import EmailAnalyzer
+from services.database import get_database_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
-# 임시 저장소 (실제로는 DB 사용)
-events_store: List[Event] = []
-
 # EmailAnalyzer 초기화
 email_analyzer = EmailAnalyzer()
+
+# 데이터베이스 서비스
+db = get_database_service()
 
 
 @router.post(
@@ -53,24 +54,21 @@ async def create_event(request: EventRequest) -> EventResponse:
             user_id=request.user_id
         )
         
-        # ID 생성 (실제로는 DB에서 생성)
-        event.id = f"event_{len(events_store) + 1}_{datetime.now().timestamp()}"
-        
-        # 저장 (실제로는 DB에 저장)
-        events_store.append(event)
+        # 데이터베이스에 저장
+        saved_event = await db.create_event(event)
         
         # 분석 결과 설명 생성
-        analysis = f"'{event.customer_name or '이름 없음'}'의 {request.mode.value} 이벤트가 생성되었습니다."
-        if event.datetime:
-            analysis += f" 일정: {event.datetime.strftime('%Y-%m-%d %H:%M')}"
+        analysis = f"'{saved_event.customer_name or '이름 없음'}'의 {request.mode.value} 이벤트가 생성되었습니다."
+        if saved_event.datetime:
+            analysis += f" 일정: {saved_event.datetime.strftime('%Y-%m-%d %H:%M')}"
         
         # 토큰 수 계산 (대략적)
         tokens_used = email_analyzer.openai_service.count_tokens(request.text)
         
-        logger.info(f"✅ 이벤트 생성 완료: {event.id}")
+        logger.info(f"✅ 이벤트 생성 완료: {saved_event.id}")
         
         return EventResponse(
-            event=event,
+            event=saved_event,
             analysis=analysis,
             tokens_used=tokens_used
         )
@@ -104,23 +102,14 @@ async def get_events(
         EventListResponse: 이벤트 목록
     """
     try:
-        # 필터링
-        filtered_events = events_store.copy()
+        # 데이터베이스에서 조회
+        events = await db.get_events(event_type=event_type, user_id=user_id)
         
-        if event_type:
-            filtered_events = [e for e in filtered_events if e.event_type == event_type]
-        
-        if user_id:
-            filtered_events = [e for e in filtered_events if e.user_id == user_id]
-        
-        # 최신순 정렬
-        filtered_events.sort(key=lambda x: x.created_at, reverse=True)
-        
-        logger.info(f"✅ 이벤트 목록 조회: {len(filtered_events)}개")
+        logger.info(f"✅ 이벤트 목록 조회: {len(events)}개")
         
         return EventListResponse(
-            events=filtered_events,
-            total=len(filtered_events)
+            events=events,
+            total=len(events)
         )
         
     except Exception as e:
@@ -148,8 +137,8 @@ async def get_event(event_id: str) -> Event:
         Event: 이벤트 상세 정보
     """
     try:
-        # 이벤트 찾기
-        event = next((e for e in events_store if e.id == event_id), None)
+        # 데이터베이스에서 조회
+        event = await db.get_event(event_id)
         
         if not event:
             raise HTTPException(
@@ -186,22 +175,14 @@ async def delete_event(event_id: str) -> dict:
         삭제 결과
     """
     try:
-        global events_store
+        # 데이터베이스에서 삭제
+        success = await db.delete_event(event_id)
         
-        # 이벤트 찾기
-        event_index = next(
-            (i for i, e in enumerate(events_store) if e.id == event_id),
-            None
-        )
-        
-        if event_index is None:
+        if not success:
             raise HTTPException(
                 status_code=404,
                 detail=f"이벤트를 찾을 수 없습니다: {event_id}"
             )
-        
-        # 삭제
-        deleted_event = events_store.pop(event_index)
         
         logger.info(f"✅ 이벤트 삭제 완료: {event_id}")
         
