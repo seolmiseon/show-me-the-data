@@ -15,19 +15,31 @@ from models.schemas import (
     EventType
 )
 from services.email_analyzer import EmailAnalyzer
+from services.database import get_database_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
-# EmailAnalyzer 초기화
-email_analyzer = EmailAnalyzer()
+# 서비스 싱글톤
+_email_analyzer = None
+_db_service = None
+
+
+def _get_email_analyzer():
+    """EmailAnalyzer 서비스 지연 로딩"""
+    global _email_analyzer
+    if _email_analyzer is None:
+        _email_analyzer = EmailAnalyzer()
+    return _email_analyzer
 
 
 def _get_db():
     """데이터베이스 서비스 지연 로딩"""
-    from services.database import get_database_service
-    return get_database_service()
+    global _db_service
+    if _db_service is None:
+        _db_service = get_database_service()
+    return _db_service
 
 
 @router.post(
@@ -49,15 +61,18 @@ async def create_event(request: EventRequest) -> EventResponse:
     try:
         logger.info(f"📧 이벤트 생성 요청: {request.mode.value} - {request.text[:50]}...")
         
+        # 서비스 가져오기
+        analyzer = _get_email_analyzer()
+        db = _get_db()
+        
         # 이메일/메시지 분석
-        event = await email_analyzer.analyze(
+        event = await analyzer.analyze(
             text=request.text,
             mode=request.mode,
             user_id=request.user_id
         )
         
         # 데이터베이스에 저장
-        db = get_database_service()
         saved_event = await db.create_event(event)
         
         # 분석 결과 설명 생성
@@ -66,7 +81,7 @@ async def create_event(request: EventRequest) -> EventResponse:
             analysis += f" 일정: {saved_event.datetime.strftime('%Y-%m-%d %H:%M')}"
         
         # 토큰 수 계산 (대략적)
-        tokens_used = email_analyzer.openai_service.count_tokens(request.text)
+        tokens_used = analyzer.openai_service.count_tokens(request.text)
         
         logger.info(f"✅ 이벤트 생성 완료: {saved_event.id}")
         
@@ -106,7 +121,7 @@ async def get_events(
     """
     try:
         # 데이터베이스에서 조회
-        db = get_database_service()
+        db = _get_db()
         events = await db.get_events(event_type=event_type, user_id=user_id)
         
         logger.info(f"✅ 이벤트 목록 조회: {len(events)}개")
@@ -142,7 +157,7 @@ async def get_event(event_id: str) -> Event:
     """
     try:
         # 데이터베이스에서 조회
-        db = get_database_service()
+        db = _get_db()
         event = await db.get_event(event_id)
         
         if not event:
@@ -181,7 +196,7 @@ async def delete_event(event_id: str) -> dict:
     """
     try:
         # 데이터베이스에서 삭제
-        db = get_database_service()
+        db = _get_db()
         success = await db.delete_event(event_id)
         
         if not success:
