@@ -95,4 +95,4 @@ if __name__ == "__main__":
 
 # Vercel 배포용: Mangum으로 래핑
 # Vercel이 자동으로 이 handler를 사용
-handler = Mangum(app, lifespan="off")
+handler = Mangum(app, lifespan="auto")
