@@ -1,183 +1,101 @@
 """
-Supabase 데이터베이스 서비스
+Mock 데이터베이스 서비스 (해커톤용 임시)
+실제 DB 연동은 다음 버전에서!
 """
-import os
-from typing import List, Optional
-from datetime import datetime
-from supabase import create_client, Client
 import logging
-
+from datetime import datetime
+import uuid
+from typing import List, Optional
 from models.schemas import Event, EventType
 
 logger = logging.getLogger(__name__)
 
 
-class DatabaseService:
-    """Supabase 데이터베이스 서비스"""
+class MockDatabaseService:
+    """Mock DB 서비스 (Supabase 대신 사용)"""
     
     def __init__(self):
-        """Supabase 클라이언트 초기화"""
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_KEY")
-        
-        # 디버그 로그
-        logger.info(f"🔍 SUPABASE_URL: {supabase_url}")
-        logger.info(f"🔍 SUPABASE_KEY 길이: {len(supabase_key) if supabase_key else 0}")
-        logger.info(f"🔍 SUPABASE_KEY 앞 10자: {supabase_key[:10] if supabase_key else 'None'}")
-        
-        if not supabase_url or not supabase_key:
-            raise ValueError("SUPABASE_URL과 SUPABASE_KEY 환경 변수가 필요합니다.")
-        
-        self.client: Client = create_client(supabase_url, supabase_key)
-        self.table_name = "events"
-        logger.info("✅ Supabase 클라이언트 초기화 완료")
+        logger.info("🎭 Mock DB 서비스가 실행됩니다. (데이터 저장 안 됨)")
+        # 시연용 더미 데이터 (새로고침해도 이 데이터는 무조건 보임!)
+        self.dummy_events = [
+            Event(
+                id="mock-1",
+                event_type=EventType.WORK,
+                customer_name="패스트캠퍼스",
+                datetime=datetime.now(),
+                description="해커톤 마감일! 무조건 제출한다.",
+                original_text="[해커톤] 쇼미더데이터 프로젝트 제출",
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                confidence=1.0,
+                extracted_fields={}
+            ),
+            Event(
+                id="mock-2",
+                event_type=EventType.WORK,
+                customer_name="팀원들",
+                datetime=datetime(2026, 1, 23, 19, 0),
+                description="해커톤 끝나고 고기 먹으러 감",
+                original_text="팀 회식 - 강남역 19시",
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                confidence=0.9,
+                extracted_fields={}
+            )
+        ]
     
     async def create_event(self, event: Event) -> Event:
-        """
-        이벤트 생성
+        """이벤트 생성하는 척 (실제로는 로그만 찍고 성공 리턴)"""
+        logger.info(f"📝 [Mock] 이벤트 생성 요청 받음: {event.customer_name}")
         
-        Args:
-            event: Event 객체
+        # 가짜 ID 생성
+        event.id = str(uuid.uuid4())
+        event.created_at = datetime.now()
+        event.updated_at = datetime.now()
         
-        Returns:
-            Event: 생성된 이벤트 (ID 포함)
-        """
-        try:
-            # Event를 dict로 변환
-            event_dict = event.model_dump(exclude_none=True)
-            
-            # datetime을 ISO 문자열로 변환
-            if event_dict.get("datetime"):
-                event_dict["datetime"] = event_dict["datetime"].isoformat()
-            if event_dict.get("created_at"):
-                event_dict["created_at"] = event_dict["created_at"].isoformat()
-            if event_dict.get("updated_at"):
-                event_dict["updated_at"] = event_dict["updated_at"].isoformat()
-            
-            # Supabase에 삽입
-            response = self.client.table(self.table_name).insert(event_dict).execute()
-            
-            if not response.data:
-                raise Exception("이벤트 생성 실패: 응답 데이터 없음")
-            
-            # 생성된 이벤트 반환
-            created_event = Event(**response.data[0])
-            logger.info(f"✅ 이벤트 생성 완료: {created_event.id}")
-            return created_event
-            
-        except Exception as e:
-            logger.error(f"❌ 이벤트 생성 오류: {e}", exc_info=True)
-            raise
+        logger.info(f"✅ [Mock] 이벤트 생성 완료: {event.id}")
+        return event
     
     async def get_events(
         self,
         event_type: Optional[EventType] = None,
         user_id: Optional[str] = None
     ) -> List[Event]:
-        """
-        이벤트 목록 조회
+        """이벤트 목록 조회 (무조건 더미 데이터 리턴)"""
+        logger.info("📂 [Mock] 이벤트 목록 조회 요청")
         
-        Args:
-            event_type: 이벤트 타입 필터
-            user_id: 사용자 ID 필터
+        # 필터링 (옵션)
+        events = self.dummy_events
+        if event_type:
+            events = [e for e in events if e.event_type == event_type]
         
-        Returns:
-            List[Event]: 이벤트 목록
-        """
-        try:
-            # 쿼리 생성
-            query = self.client.table(self.table_name).select("*")
-            
-            # 필터 적용
-            if event_type:
-                query = query.eq("event_type", event_type.value)
-            
-            if user_id:
-                query = query.eq("user_id", user_id)
-            
-            # 최신순 정렬
-            query = query.order("created_at", desc=True)
-            
-            # 실행
-            response = query.execute()
-            
-            # Event 객체로 변환
-            events = [Event(**item) for item in response.data]
-            
-            logger.info(f"✅ 이벤트 목록 조회: {len(events)}개")
-            return events
-            
-        except Exception as e:
-            logger.error(f"❌ 이벤트 목록 조회 오류: {e}", exc_info=True)
-            raise
+        return events
     
     async def get_event(self, event_id: str) -> Optional[Event]:
-        """
-        이벤트 상세 조회
+        """이벤트 상세 조회"""
+        logger.info(f"🔍 [Mock] 이벤트 상세 조회: {event_id}")
         
-        Args:
-            event_id: 이벤트 ID
-        
-        Returns:
-            Optional[Event]: 이벤트 또는 None
-        """
-        try:
-            response = (
-                self.client.table(self.table_name)
-                .select("*")
-                .eq("id", event_id)
-                .execute()
-            )
-            
-            if not response.data:
-                return None
-            
-            event = Event(**response.data[0])
-            logger.info(f"✅ 이벤트 상세 조회: {event_id}")
-            return event
-            
-        except Exception as e:
-            logger.error(f"❌ 이벤트 상세 조회 오류: {e}", exc_info=True)
-            raise
+        for event in self.dummy_events:
+            if event.id == event_id:
+                return event
+        return None
     
     async def delete_event(self, event_id: str) -> bool:
-        """
-        이벤트 삭제
-        
-        Args:
-            event_id: 이벤트 ID
-        
-        Returns:
-            bool: 삭제 성공 여부
-        """
-        try:
-            response = (
-                self.client.table(self.table_name)
-                .delete()
-                .eq("id", event_id)
-                .execute()
-            )
-            
-            if not response.data:
-                return False
-            
-            logger.info(f"✅ 이벤트 삭제 완료: {event_id}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ 이벤트 삭제 오류: {e}", exc_info=True)
-            raise
+        """이벤트 삭제하는 척"""
+        logger.info(f"🗑️ [Mock] 이벤트 삭제 요청: {event_id}")
+        # 실제로는 삭제 안 하지만 성공 리턴
+        return True
 
 
 # 싱글톤 인스턴스
-_db_service: Optional[DatabaseService] = None
+_db_service: Optional[MockDatabaseService] = None
 
 
-def get_database_service() -> DatabaseService:
+def get_database_service() -> MockDatabaseService:
     """데이터베이스 서비스 싱글톤 반환"""
     global _db_service
     
     if _db_service is None:
-        _db_service = DatabaseService()
+        _db_service = MockDatabaseService()
     
     return _db_service
