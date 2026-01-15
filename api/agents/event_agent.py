@@ -19,28 +19,44 @@ from models.schemas import EventType
 
 logger = logging.getLogger(__name__)
 
-# 서비스 초기화
-openai_service = OpenAIService()
+# 전역 변수 (Lazy Loading용)
+_openai_service = None
+_llm = None
+_base_agent = None
 
-# LangChain LLM 초기화 (FSF 구조 그대로)
-llm = ChatOpenAI(
-    model=os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini"),
-    temperature=0.7
-)
 
-# Tool 리스트 (기본)
-base_tools = [
-    EventExtractionTool,
-]
+def _get_openai_service():
+    """OpenAI 서비스 지연 로딩"""
+    global _openai_service
+    if _openai_service is None:
+        _openai_service = OpenAIService()
+    return _openai_service
 
-# Agent 초기화 (기본 - FSF 구조 그대로)
-base_agent = initialize_agent(
-    tools=base_tools,
-    llm=llm,
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    verbose=True,
-    handle_parsing_errors=True
-)
+
+def _get_llm():
+    """LangChain LLM 지연 로딩"""
+    global _llm
+    if _llm is None:
+        _llm = ChatOpenAI(
+            model=os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini"),
+            temperature=0.7
+        )
+    return _llm
+
+
+def _get_base_agent():
+    """Agent 지연 로딩"""
+    global _base_agent
+    if _base_agent is None:
+        base_tools = [EventExtractionTool]
+        _base_agent = initialize_agent(
+            tools=base_tools,
+            llm=_get_llm(),
+            agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+            verbose=True,
+            handle_parsing_errors=True
+        )
+    return _base_agent
 
 # Agent 시스템 프롬프트 (FSF의 ReAct 프롬프트 구조 참고)
 REACT_AGENT_SYSTEM_PROMPT = """당신은 이메일/메시지 분석 전문 AI 어시스턴트입니다.
@@ -71,9 +87,18 @@ class EventAgent:
     """이벤트 추출 Agent (FSF 구조 재사용)"""
     
     def __init__(self):
-        self.llm = llm
-        self.base_tools = base_tools
-        self.base_agent = base_agent
+        # 서비스는 사용 시점에 로딩 (Lazy Loading)
+        pass
+    
+    @property
+    def llm(self):
+        """LLM 지연 로딩"""
+        return _get_llm()
+    
+    @property
+    def base_agent(self):
+        """Agent 지연 로딩"""
+        return _get_base_agent()
     
     def _get_mode_prompt(self, mode: EventType) -> str:
         """
