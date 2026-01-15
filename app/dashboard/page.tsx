@@ -5,6 +5,10 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
+// FullCalendar CSS (v6)
+import '@fullcalendar/core/index.css';
+import '@fullcalendar/daygrid/index.css';
+
 type EventType = "recruit" | "order" | "work";
 
 interface Event {
@@ -115,7 +119,24 @@ export default function Dashboard() {
       if (data.event) {
         setAnalysis(data.analysis);
         setInputText(""); // 입력창 초기화
-        await fetchEvents(); // 이벤트 목록 새로고침
+        
+        // 생성된 이벤트를 즉시 state에 추가 (Vercel 서버리스 대응)
+        setEvents(prev => [data.event, ...prev]);
+        
+        // 캘린더에도 추가
+        const newCalendarEvent = {
+          id: data.event.id,
+          title: data.event.customer_name || "이름 없음",
+          start: data.event.datetime || data.event.created_at,
+          backgroundColor: currentTheme.calendar,
+          borderColor: currentTheme.calendar,
+          extendedProps: {
+            description: data.event.description,
+            original_text: data.event.original_text,
+            event_type: data.event.event_type,
+          },
+        };
+        setCalendarEvents(prev => [...prev, newCalendarEvent]);
       }
     } catch (error) {
       console.error("분석 오류:", error);

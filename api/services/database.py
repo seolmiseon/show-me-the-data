@@ -15,8 +15,12 @@ class MockDatabaseService:
     """Mock DB 서비스 (Supabase 대신 사용)"""
     
     def __init__(self):
-        logger.info("🎭 Mock DB 서비스가 실행됩니다. (데이터 저장 안 됨)")
-        # 시연용 더미 데이터 (새로고침해도 이 데이터는 무조건 보임!)
+        logger.info("🎭 Mock DB 서비스가 실행됩니다. (메모리 저장)")
+        
+        # 메모리 저장소 (새로고침하면 사라짐!)
+        self.events_memory = []
+        
+        # 시연용 더미 데이터 (처음 시작시에만 추가)
         self.dummy_events = [
             Event(
                 id="mock-1",
@@ -43,17 +47,24 @@ class MockDatabaseService:
                 extracted_fields={}
             )
         ]
+        
+        # 더미 데이터를 메모리에 추가
+        self.events_memory.extend(self.dummy_events)
     
     async def create_event(self, event: Event) -> Event:
-        """이벤트 생성하는 척 (실제로는 로그만 찍고 성공 리턴)"""
+        """이벤트 생성 및 메모리에 저장"""
         logger.info(f"📝 [Mock] 이벤트 생성 요청 받음: {event.customer_name}")
         
-        # 가짜 ID 생성
+        # ID 생성
         event.id = str(uuid.uuid4())
         event.created_at = datetime.now()
         event.updated_at = datetime.now()
         
+        # 메모리에 저장!
+        self.events_memory.append(event)
+        
         logger.info(f"✅ [Mock] 이벤트 생성 완료: {event.id}")
+        logger.info(f"📊 현재 저장된 이벤트 수: {len(self.events_memory)}")
         return event
     
     async def get_events(
@@ -61,21 +72,27 @@ class MockDatabaseService:
         event_type: Optional[EventType] = None,
         user_id: Optional[str] = None
     ) -> List[Event]:
-        """이벤트 목록 조회 (무조건 더미 데이터 리턴)"""
+        """이벤트 목록 조회 (메모리에서)"""
         logger.info("📂 [Mock] 이벤트 목록 조회 요청")
         
+        # 메모리에서 가져오기
+        events = self.events_memory
+        
         # 필터링 (옵션)
-        events = self.dummy_events
         if event_type:
             events = [e for e in events if e.event_type == event_type]
         
+        # 최신순 정렬
+        events = sorted(events, key=lambda x: x.created_at, reverse=True)
+        
+        logger.info(f"✅ [Mock] {len(events)}개 이벤트 리턴")
         return events
     
     async def get_event(self, event_id: str) -> Optional[Event]:
         """이벤트 상세 조회"""
         logger.info(f"🔍 [Mock] 이벤트 상세 조회: {event_id}")
         
-        for event in self.dummy_events:
+        for event in self.events_memory:
             if event.id == event_id:
                 return event
         return None
