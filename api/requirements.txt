@@ -1,6 +1,6 @@
 # FastAPI 및 서버 기본
 fastapi==0.115.0
-mangum==0.18.1
+mangum==0.17.0
 python-dotenv==1.0.1
 python-multipart==0.0.12
 
