@@ -7,8 +7,12 @@ from mangum import Mangum
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import sys
 import logging
 from datetime import datetime
+
+# Vercel 배포를 위한 경로 설정
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +24,9 @@ try:
     logger.info("✅ Events 라우터 import 성공")
 except Exception as e:
     logger.error(f"❌ Events 라우터 import 실패: {e}")
+    logger.error(f"Current sys.path: {sys.path}")
+    logger.error(f"Current __file__: {__file__}")
+    logger.error(f"Current dir: {os.path.dirname(os.path.abspath(__file__))}")
     events_router = None
 
 # FastAPI 앱 초기화
