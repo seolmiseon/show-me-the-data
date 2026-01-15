@@ -1,9 +1,4 @@
-"""
-FastAPI 앱 - 로컬 개발 및 Vercel 배포 공용
-- 로컬 개발: python index.py 또는 uvicorn index:app 실행
-- Vercel 배포: Mangum으로 자동 래핑
-"""
-from mangum import Mangum
+# from mangum import Mangum  <-- ❌ 삭제! (이게 원흉입니다)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -24,16 +19,15 @@ try:
     logger.info("✅ Events 라우터 import 성공")
 except Exception as e:
     logger.error(f"❌ Events 라우터 import 실패: {e}")
+    # 경로 디버깅용 로그
     logger.error(f"Current sys.path: {sys.path}")
-    logger.error(f"Current __file__: {__file__}")
-    logger.error(f"Current dir: {os.path.dirname(os.path.abspath(__file__))}")
     events_router = None
 
-# FastAPI 앱 초기화
+# FastAPI 앱 초기화 (전역 변수 'app' 필수)
 app = FastAPI(
     title="Show Me The Data",
     version="1.0.0",
-    description="AI Business Dashboard - 이메일/메시지 분석 및 일정 관리",
+    description="AI Business Dashboard",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -43,7 +37,7 @@ logger.info("🏗️ FastAPI 앱 초기화 완료")
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 프로덕션에서는 구체적인 도메인으로 제한 권장
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,39 +54,19 @@ if events_router:
 
 logger.info("🔗 모든 라우터 등록 완료!")
 
-
-@app.get("/", tags=["Root"])
-async def root():
-    """루트 엔드포인트"""
-    return {
-        "message": "Show Me The Data API is running!",
-        "version": "1.0.0",
-        "timestamp": str(datetime.now()),
-    }
-
-
-@app.get("/health", tags=["Health"])
+@app.get("/api/health") # Vercel 경로 매칭을 위해 /api prefix 붙임
 async def health_check():
-    """헬스 체크 엔드포인트"""
-    openai_configured = (
-        "configured" if os.getenv("OPENAI_API_KEY") else "not configured"
-    )
-
     return {
         "status": "healthy",
-        "service": "Show Me The Data API",
-        "openai": openai_configured,
         "timestamp": str(datetime.now()),
     }
 
-
-# 로컬 개발용: 직접 실행 가능
+# 로컬 개발용
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8082))
     logger.info(f"🚀 로컬 서버 시작: http://localhost:{port}")
     uvicorn.run("index:app", host="0.0.0.0", port=port, reload=True)
 
-# Vercel 배포용: Mangum으로 래핑
-# Vercel이 자동으로 이 handler를 사용
-handler = Mangum(app, lifespan="auto")
+# ❌ 삭제: handler = Mangum(app) 
+# Vercel은 'app' 변수를 자동으로 찾아서 실행합니다.
