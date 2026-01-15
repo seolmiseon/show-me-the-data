@@ -15,7 +15,6 @@ from models.schemas import (
     EventType
 )
 from services.email_analyzer import EmailAnalyzer
-from services.database import get_database_service
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +22,12 @@ router = APIRouter(prefix="/events", tags=["Events"])
 
 # EmailAnalyzer 초기화
 email_analyzer = EmailAnalyzer()
+
+
+def _get_db():
+    """데이터베이스 서비스 지연 로딩"""
+    from services.database import get_database_service
+    return get_database_service()
 
 
 @router.post(
