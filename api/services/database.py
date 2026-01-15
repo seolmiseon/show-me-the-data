@@ -20,6 +20,11 @@ class DatabaseService:
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_KEY")
         
+        # 디버그 로그
+        logger.info(f"🔍 SUPABASE_URL: {supabase_url}")
+        logger.info(f"🔍 SUPABASE_KEY 길이: {len(supabase_key) if supabase_key else 0}")
+        logger.info(f"🔍 SUPABASE_KEY 앞 10자: {supabase_key[:10] if supabase_key else 'None'}")
+        
         if not supabase_url or not supabase_key:
             raise ValueError("SUPABASE_URL과 SUPABASE_KEY 환경 변수가 필요합니다.")
         
