@@ -1,5 +1,24 @@
 @import "tailwindcss";
 
+/* FullCalendar 기본 스타일 */
+.fc {
+  color: #000000 !important;
+}
+
+.fc-daygrid-day-number {
+  color: #000000 !important;
+  padding: 4px;
+}
+
+.fc-col-header-cell-cushion {
+  color: #000000 !important;
+}
+
+.fc-event-title {
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
