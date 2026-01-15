@@ -24,9 +24,6 @@ router = APIRouter(prefix="/events", tags=["Events"])
 # EmailAnalyzer 초기화
 email_analyzer = EmailAnalyzer()
 
-# 데이터베이스 서비스
-db = get_database_service()
-
 
 @router.post(
     "",
@@ -55,6 +52,7 @@ async def create_event(request: EventRequest) -> EventResponse:
         )
         
         # 데이터베이스에 저장
+        db = get_database_service()
         saved_event = await db.create_event(event)
         
         # 분석 결과 설명 생성
@@ -103,6 +101,7 @@ async def get_events(
     """
     try:
         # 데이터베이스에서 조회
+        db = get_database_service()
         events = await db.get_events(event_type=event_type, user_id=user_id)
         
         logger.info(f"✅ 이벤트 목록 조회: {len(events)}개")
@@ -138,6 +137,7 @@ async def get_event(event_id: str) -> Event:
     """
     try:
         # 데이터베이스에서 조회
+        db = get_database_service()
         event = await db.get_event(event_id)
         
         if not event:
@@ -176,6 +176,7 @@ async def delete_event(event_id: str) -> dict:
     """
     try:
         # 데이터베이스에서 삭제
+        db = get_database_service()
         success = await db.delete_event(event_id)
         
         if not success:
