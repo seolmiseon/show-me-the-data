@@ -5,10 +5,6 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
-// FullCalendar CSS (v6)
-import '@fullcalendar/core/index.css';
-import '@fullcalendar/daygrid/index.css';
-
 type EventType = "recruit" | "order" | "work";
 
 interface Event {
